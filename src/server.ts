@@ -4,7 +4,11 @@ import type pg from "pg";
 import { ZodError } from "zod";
 import { allowedOrigins, type Env } from "./config/env.js";
 import { HttpError } from "./http/errors.js";
+import { adminRoutes } from "./routes/admin.js";
 import { authRoutes } from "./routes/auth.js";
+import { collectionRoutes } from "./routes/collection.js";
+import { matchRoutes } from "./routes/matches.js";
+import { rewardRoutes } from "./routes/rewards.js";
 import { statusRoutes } from "./routes/status.js";
 
 export interface AppDeps {
@@ -15,7 +19,7 @@ export interface AppDeps {
 /** 라우트 모듈 형식. 단계별로 server.ts의 ROUTES에 추가한다. */
 export type RouteModule = (app: FastifyInstance, deps: AppDeps) => void | Promise<void>;
 
-const ROUTES: RouteModule[] = [authRoutes, statusRoutes];
+const ROUTES: RouteModule[] = [authRoutes, statusRoutes, collectionRoutes, matchRoutes, rewardRoutes, adminRoutes];
 
 export async function buildServer(deps: AppDeps, routes: RouteModule[] = ROUTES) {
   const { env, pool } = deps;
