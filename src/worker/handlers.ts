@@ -1,8 +1,10 @@
 import type pg from "pg";
 import type { Env } from "../config/env.js";
-import { allocateInitial, syncNewRepositories } from "../domain/allocation.js";
+import { allocateInitial, fillWaitingStarters, syncNewRepositories } from "../domain/allocation.js";
+import { generateCardVersion, recordCardFailure } from "../domain/cards.js";
+import { recordRepoMissing, upsertRepository } from "../domain/repositories.js";
 import { GitHubClient } from "../github/client.js";
-import { listOwnedCardRepos } from "../github/repos.js";
+import { fetchRepoById, listOwnedCardRepos } from "../github/repos.js";
 import type { JobPayloads } from "../jobs/kinds.js";
 import type { Job, JobHandler } from "../jobs/worker.js";
 
@@ -29,6 +31,33 @@ export function createHandlers(deps: WorkerDeps): Record<string, JobHandler> {
         const { userId } = payload<"sync">(job);
         const repos = await listOwnedCardRepos(github, userId);
         await syncNewRepositories(pool, userId, repos);
+      },
+    },
+    card: {
+      run: async (job) => {
+        const outcome = await generateCardVersion(deps, payload<"card">(job));
+        if (outcome.status === "ready") {
+          const active = await pool.query("SELECT 1 FROM seasons WHERE id = $1 AND status = 'active'", [
+            payload<"card">(job).seasonId,
+          ]);
+          // 공용 카드가 새로 준비되면 시작 카드가 모자란 사용자를 채운다.
+          if (active.rowCount) await fillWaitingStarters(pool);
+        }
+      },
+      onFinalFailure: async (job, error) => {
+        const { repoId, seasonId } = payload<"card">(job);
+        await recordCardFailure(pool, repoId, seasonId, error.message);
+      },
+    },
+    refresh: {
+      run: async (job) => {
+        const { repoId } = payload<"refresh">(job);
+        const repo = await fetchRepoById(github, repoId);
+        if (!repo) {
+          await recordRepoMissing(pool, repoId);
+          return;
+        }
+        await upsertRepository(pool, repo);
       },
     },
   };

@@ -122,6 +122,8 @@ describeDb("최초 수집·배정 작업", () => {
     await allocateInitial(db.pool, userId, first);
     const extra = Array.from({ length: 4 }, (_, i) => fakeRepo(userId * 100 + 50 + i, userId));
     stubFetch(githubUserRoutes(userId, [...first, ...extra]));
+    // 이 테스트는 동기화만 검증한다. 배정 때 등록된 카드 분석 작업이 먼저 잡히지 않도록 지운다.
+    await db.pool.query("DELETE FROM jobs WHERE kind = 'card'");
     await enqueueSync(db.pool, userId, "2026-10-19");
     await runNextJob(db.pool, handlers());
     expect(await bucketCounts(userId)).toEqual({ initial: 7, personal: 3, public: 2 });

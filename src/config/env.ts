@@ -33,7 +33,8 @@ const schema = z.object({
   /** 공개 Repo 메타데이터 수집용 서버 토큰. 사용자 OAuth 토큰은 저장하지 않는다. */
   GITHUB_CLASSIC_TOKEN: optionalSecret,
   OPENAI_API_KEY: optionalSecret,
-  OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
+  /** 분류 모델. 쉼표로 여러 개를 적으면 앞의 모델을 쓸 수 없을 때 다음 모델을 쓴다. */
+  OPENAI_MODEL: z.string().default("gpt-4.1-mini,gpt-5-mini,gpt-4o-mini"),
   /** 운영자 기능을 쓸 GitHub 숫자 사용자 ID 목록. */
   ADMIN_GITHUB_IDS: commaList.transform((ids, ctx) =>
     ids.map((id) => {

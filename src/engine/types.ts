@@ -40,6 +40,9 @@ export interface CardDef {
   attack: number;
   durability: number;
   ability: Ability | null;
+  /** 화면 표시용 출처와 외형 콘셉트. 규칙 판정에는 쓰지 않는다. */
+  source?: { repoId: number; fullName: string; url: string; owner: string };
+  concept?: string;
 }
 
 export interface Unit {

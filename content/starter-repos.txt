@@ -1,0 +1,21 @@
+# 운영자가 확인한 뒤 게시할 공개 Repo 후보. 이름과 접근 가능 여부는 실행 시 GitHub에서 재확인합니다.
+https://github.com/sindresorhus/is
+https://github.com/ai/nanoid
+https://github.com/chalk/chalk
+https://github.com/feross/safe-buffer
+https://github.com/ljharb/is-core-module
+https://github.com/isaacs/node-glob
+https://github.com/expressjs/express
+https://github.com/koajs/koa
+https://github.com/axios/axios
+https://github.com/uuidjs/uuid
+https://github.com/motdotla/dotenv
+https://github.com/fastify/fastify
+https://github.com/pinojs/pino
+https://github.com/vitest-dev/vitest
+https://github.com/colinhacks/zod
+https://github.com/drizzle-team/drizzle-orm
+https://github.com/remix-run/react-router
+https://github.com/lukeed/clsx
+https://github.com/sindresorhus/quick-lru
+https://github.com/davidmarkclements/fast-redact
