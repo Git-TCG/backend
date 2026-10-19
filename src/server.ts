@@ -1,27 +1,45 @@
 import cors from "@fastify/cors";
-import Fastify from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import type pg from "pg";
-import {registerRewards} from "./service/rewards.js";
-import {registerMatches} from "./service/matches.js";
-import {registerCollection} from "./service/collection.js";
-import {allowedOrigins,registerAuth} from "./service/auth.js";
-import type { Env } from "./config/env.js";
+import { ZodError } from "zod";
+import { allowedOrigins, type Env } from "./config/env.js";
+import { HttpError } from "./http/errors.js";
 
 export interface AppDeps {
   env: Env;
-  pool: Pick<pg.Pool, "query">;
+  pool: pg.Pool;
 }
 
-export async function buildServer({ env, pool }: AppDeps) {
+/** 라우트 모듈 형식. 단계별로 server.ts의 ROUTES에 추가한다. */
+export type RouteModule = (app: FastifyInstance, deps: AppDeps) => void | Promise<void>;
+
+const ROUTES: RouteModule[] = [];
+
+export async function buildServer(deps: AppDeps, routes: RouteModule[] = ROUTES) {
+  const { env, pool } = deps;
   const app = Fastify({
     logger: env.NODE_ENV === "test" ? false : { level: env.NODE_ENV === "production" ? "info" : "debug" },
     trustProxy: true,
+    bodyLimit: 64 * 1024,
+  });
+
+  app.setErrorHandler((error: Error & { statusCode?: number; validation?: unknown }, req, reply) => {
+    if (error instanceof ZodError) {
+      const detail = error.issues.map((i) => `${i.path.join(".") || "body"}: ${i.message}`).join(", ");
+      return reply.code(400).send({ error: `잘못된 요청입니다 (${detail})` });
+    }
+    if (error instanceof HttpError) return reply.code(error.statusCode).send({ error: error.message });
+    // Fastify 자체 4xx(본문 파싱 실패 등)는 그대로 알린다.
+    if (typeof error.statusCode === "number" && error.statusCode >= 400 && error.statusCode < 500) {
+      return reply.code(error.statusCode).send({ error: error.message });
+    }
+    req.log.error({ err: error }, "request failed");
+    return reply.code(500).send({ error: "서버 오류가 발생했습니다" });
   });
 
   await app.register(cors, { origin: allowedOrigins(env), credentials: true });
-  if ("connect" in pool) { registerAuth(app,pool as pg.Pool,env); registerCollection(app,pool as pg.Pool,env); registerMatches(app,pool as pg.Pool,env); registerRewards(app,pool as pg.Pool,env); }
 
-  app.get("/health", async (_req, reply) => {
+  const health = async (_req: FastifyRequest, reply: FastifyReply) => {
     try {
       await pool.query("select 1");
       return { status: "ok", db: "ok" };
@@ -29,7 +47,10 @@ export async function buildServer({ env, pool }: AppDeps) {
       app.log.error({ err }, "health check: db unreachable");
       return reply.code(503).send({ status: "degraded", db: "error" });
     }
-  });
+  };
+  app.get("/health", health);
+  app.get("/api/health", health);
 
+  for (const register of routes) await register(app, deps);
   return app;
 }

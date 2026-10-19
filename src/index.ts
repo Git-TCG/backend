@@ -1,10 +1,10 @@
 import { loadEnv } from "./config/env.js";
-import { createDb } from "./db/client.js";
 import { runMigrations } from "./db/migrate.js";
+import { createPool } from "./db/pool.js";
 import { buildServer } from "./server.js";
 
 const env = loadEnv();
-const { pool } = createDb(env.DATABASE_URL);
+const pool = createPool(env.DATABASE_URL);
 await runMigrations(pool);
 
 const app = await buildServer({ env, pool });
