@@ -74,3 +74,5 @@ CREATE TABLE IF NOT EXISTS discoveries (
  UNIQUE(user_id,chosen)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS one_open_discovery ON discoveries(user_id) WHERE chosen IS NULL;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS idle0 integer NOT NULL DEFAULT 0;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS idle1 integer NOT NULL DEFAULT 0;

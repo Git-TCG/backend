@@ -26,6 +26,7 @@ const schema = z.object({
   GITHUB_CLIENT_SECRET: optionalSecret,
   GITHUB_CLASSIC_TOKEN: optionalSecret,
   OPENAI_API_KEY: optionalSecret,
+  ADMIN_GITHUB_IDS: z.string().default("").transform(v=>v.split(",").map(x=>x.trim()).filter(Boolean)),
 });
 
 export type Env = z.infer<typeof schema>;
