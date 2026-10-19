@@ -4,6 +4,8 @@ import type pg from "pg";
 import { ZodError } from "zod";
 import { allowedOrigins, type Env } from "./config/env.js";
 import { HttpError } from "./http/errors.js";
+import { authRoutes } from "./routes/auth.js";
+import { statusRoutes } from "./routes/status.js";
 
 export interface AppDeps {
   env: Env;
@@ -13,7 +15,7 @@ export interface AppDeps {
 /** 라우트 모듈 형식. 단계별로 server.ts의 ROUTES에 추가한다. */
 export type RouteModule = (app: FastifyInstance, deps: AppDeps) => void | Promise<void>;
 
-const ROUTES: RouteModule[] = [];
+const ROUTES: RouteModule[] = [authRoutes, statusRoutes];
 
 export async function buildServer(deps: AppDeps, routes: RouteModule[] = ROUTES) {
   const { env, pool } = deps;

@@ -1,3 +1,5 @@
+name: repo-tcg
+
 services:
   db:
     image: postgres:16
@@ -16,6 +18,7 @@ services:
 
   migrate:
     build: .
+    image: repo-tcg-api
     env_file: .env
     environment:
       DATABASE_URL: postgres://tcg:${POSTGRES_PASSWORD:-tcg}@db:5432/tcg
@@ -25,7 +28,7 @@ services:
         condition: service_healthy
 
   api:
-    build: .
+    image: repo-tcg-api
     restart: unless-stopped
     env_file: .env
     environment:
@@ -34,6 +37,31 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  worker:
+    image: repo-tcg-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://tcg:${POSTGRES_PASSWORD:-tcg}@db:5432/tcg
+    command: ["node", "dist/worker/index.js"]
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # 웹 화면과 /api 프록시. GitHub OAuth Redirect URI: http://<호스트>:8123/api/auth/github
+  web:
+    build: ../frontend
+    image: repo-tcg-web
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:${WEB_PORT:-8123}:80"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   db-data:
