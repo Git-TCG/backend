@@ -4,8 +4,8 @@ import { runMigrations } from "./db/migrate.js";
 import { buildServer } from "./server.js";
 
 const env = loadEnv();
-const { db, pool } = createDb(env.DATABASE_URL);
-await runMigrations(db);
+const { pool } = createDb(env.DATABASE_URL);
+await runMigrations(pool);
 
 const app = await buildServer({ env, pool });
 
