@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tcg
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tcg}
+      POSTGRES_DB: tcg
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tcg -d tcg"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://tcg:${POSTGRES_PASSWORD:-tcg}@db:5432/tcg
+      PUBLIC_URL: https://api-tcg.shxin.kr
+    ports:
+      - "127.0.0.1:${API_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
