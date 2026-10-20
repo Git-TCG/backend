@@ -2,6 +2,7 @@ import type pg from "pg";
 import type { Env } from "../config/env.js";
 import { allocateInitial, fillWaitingStarters, syncNewRepositories } from "../domain/allocation.js";
 import { generateCardVersion, recordCardFailure } from "../domain/cards.js";
+import { enqueueCardImage, generateCardImage } from "../domain/images.js";
 import { recordRepoMissing, upsertRepository } from "../domain/repositories.js";
 import { GitHubClient } from "../github/client.js";
 import { fetchRepoById, listOwnedCardRepos } from "../github/repos.js";
@@ -37,6 +38,7 @@ export function createHandlers(deps: WorkerDeps): Record<string, JobHandler> {
       run: async (job) => {
         const outcome = await generateCardVersion(deps, payload<"card">(job));
         if (outcome.status === "ready") {
+          if (deps.env.OPENAI_API_KEY) await enqueueCardImage(pool, String(payload<"card">(job).repoId));
           const active = await pool.query("SELECT 1 FROM seasons WHERE id = $1 AND status = 'active'", [
             payload<"card">(job).seasonId,
           ]);
@@ -49,6 +51,17 @@ export function createHandlers(deps: WorkerDeps): Record<string, JobHandler> {
         await recordCardFailure(pool, repoId, seasonId, error.message);
       },
     },
+    // 키가 없으면 이미지 작업을 가져가지 않는다. 작업은 남아 있다가 키를 넣고 다시 시작하면 처리된다.
+    ...(deps.env.OPENAI_API_KEY
+      ? {
+          image: {
+            run: async (job: Job) => {
+              const { cardId } = payload<"image">(job);
+              await generateCardImage(deps, cardId);
+            },
+          },
+        }
+      : {}),
     refresh: {
       run: async (job) => {
         const { repoId } = payload<"refresh">(job);

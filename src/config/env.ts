@@ -35,6 +35,8 @@ const schema = z.object({
   OPENAI_API_KEY: optionalSecret,
   /** 분류 모델. 쉼표로 여러 개를 적으면 앞의 모델을 쓸 수 없을 때 다음 모델을 쓴다. */
   OPENAI_MODEL: z.string().default("gpt-4.1-mini,gpt-5-mini,gpt-4o-mini"),
+  /** 카드 일러스트 모델. 쉼표로 여러 개를 적으면 앞의 모델을 쓸 수 없을 때 다음 모델을 쓴다. */
+  OPENAI_IMAGE_MODEL: z.string().default("gpt-image-1-mini,dall-e-2"),
   /** 운영자 기능을 쓸 GitHub 숫자 사용자 ID 목록. */
   ADMIN_GITHUB_IDS: commaList.transform((ids, ctx) =>
     ids.map((id) => {

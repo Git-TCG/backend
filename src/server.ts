@@ -9,6 +9,7 @@ import { authRoutes } from "./routes/auth.js";
 import { collectionRoutes } from "./routes/collection.js";
 import { matchRoutes } from "./routes/matches.js";
 import { rewardRoutes } from "./routes/rewards.js";
+import { imageRoutes } from "./routes/images.js";
 import { statusRoutes } from "./routes/status.js";
 
 export interface AppDeps {
@@ -19,7 +20,15 @@ export interface AppDeps {
 /** 라우트 모듈 형식. 단계별로 server.ts의 ROUTES에 추가한다. */
 export type RouteModule = (app: FastifyInstance, deps: AppDeps) => void | Promise<void>;
 
-const ROUTES: RouteModule[] = [authRoutes, statusRoutes, collectionRoutes, matchRoutes, rewardRoutes, adminRoutes];
+const ROUTES: RouteModule[] = [
+  authRoutes,
+  statusRoutes,
+  collectionRoutes,
+  matchRoutes,
+  rewardRoutes,
+  adminRoutes,
+  imageRoutes,
+];
 
 export async function buildServer(deps: AppDeps, routes: RouteModule[] = ROUTES) {
   const { env, pool } = deps;

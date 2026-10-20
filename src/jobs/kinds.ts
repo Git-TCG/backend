@@ -14,6 +14,8 @@ export interface JobPayloads {
   card: { repoId: number; seasonId: number; force?: boolean; aiRetry?: number };
   /** Repo 이름·설명·접근 상태 갱신(하루 1회). */
   refresh: { repoId: number };
+  /** 카드 일러스트 생성(카드당 한 번). */
+  image: { cardId: string };
 }
 export type JobKind = keyof JobPayloads;
 

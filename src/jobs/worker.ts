@@ -33,7 +33,8 @@ export async function runNextJob(pool: pg.Pool, handlers: Record<string, JobHand
        WHERE kind = ANY($1::text[])
          AND ((status = 'queued' AND available_at <= now())
               OR (status = 'running' AND locked_at < now() - interval '${STALE_LOCK}'))
-       ORDER BY available_at, id
+       -- 카드 일러스트는 오래 걸리고 급하지 않으므로 다른 작업이 없을 때만 처리한다.
+       ORDER BY (kind = 'image'), available_at, id
        FOR UPDATE SKIP LOCKED
        LIMIT 1
      )
