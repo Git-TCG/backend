@@ -90,7 +90,9 @@ export const collectionRoutes: RouteModule = (app, deps) => {
   });
 
   app.get("/api/trial", async () => ({
-    cards: SAMPLE_CARDS,
+    cards: Object.fromEntries(
+      Object.entries(SAMPLE_CARDS).map(([id, card]) => [id, { ...card, abilityText: describeAbility(card) }]),
+    ),
     decks: SAMPLE_DECKS,
     description: "가상 프로젝트 체험 덱. 실제 GitHub Repo 카드가 아닙니다.",
   }));

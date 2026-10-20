@@ -92,9 +92,15 @@ export async function settleMatchRewards(
   }
   row.settled_at = new Date();
 
+  // 봇(0)과의 연습 대전은 정상 대전 보상에서 제외한다. 대신 사람이 실제로 플레이했다면
+  // (행동 1회 이상, 4턴 이상) 튜토리얼 완료 보상을 한 번 준다.
+  if (row.player0 === 0 || row.player1 === 0) {
+    const human = row.player0 === 0 ? row.player1 : row.player0;
+    const acted = row.player0 === 0 ? row.acted1 : row.acted0;
+    if (acted >= 1 && row.state.turn >= 4) await grantMilestone(q, human, "tutorial");
+    return;
+  }
   if (row.acted0 < 1 || row.acted1 < 1 || row.state.turn < 4) return;
-  // 봇(0)과의 연습 대전은 정상 대전 보상에서 제외한다.
-  if (row.player0 === 0 || row.player1 === 0) return;
 
   for (const [userId, opponentId] of [
     [row.player0, row.player1],

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { drawPoolCards } from "../domain/pool.js";
-import { grantMilestone } from "../domain/rewards.js";
 import { transaction } from "../db/pool.js";
 import { badRequest, conflict, notFound } from "../http/errors.js";
 import { requireUser } from "../http/session.js";
@@ -11,15 +10,6 @@ const DISCOVERY_COST = 3;
 
 export const rewardRoutes: RouteModule = (app, deps) => {
   const { pool } = deps;
-
-  app.post("/api/tutorial/complete", async (req) => {
-    const user = await requireUser(req, deps, { write: true });
-    await transaction(pool, async (c) => {
-      await c.query("SELECT id FROM users WHERE id = $1 FOR UPDATE", [user.id]);
-      await grantMilestone(c, user.id, "tutorial");
-    });
-    return { ok: true };
-  });
 
   app.get("/api/discovery", async (req) => {
     const user = await requireUser(req, deps);

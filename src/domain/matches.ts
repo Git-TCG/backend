@@ -14,6 +14,7 @@ import {
 } from "../engine/index.js";
 import { badRequest, conflict, notFound } from "../http/errors.js";
 import { activeSeasonId } from "../jobs/kinds.js";
+import { describeAbility } from "./cards.js";
 import { settleMatchRewards } from "./rewards.js";
 
 export const TURN_MS = 45_000;
@@ -83,10 +84,10 @@ export function publicMatchView(state: MatchState, seat: PlayerIndex, deadline: 
     ...opponent.field.filter(Boolean).map((u) => u!.cardId),
     ...(view.pending?.options ?? []),
   ]);
-  const cards: Record<string, CardDef> = {};
+  const cards: Record<string, CardDef & { abilityText: string }> = {};
   for (const id of visible) {
     const c = state.cards[id];
-    if (c) cards[id] = c;
+    if (c) cards[id] = { ...c, abilityText: describeAbility(c) };
   }
   return {
     deadline,

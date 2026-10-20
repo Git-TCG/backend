@@ -66,7 +66,7 @@ export const matchRoutes: RouteModule = (app, deps) => {
       row = await progressTimeouts(c, row);
       row = await playBotTurns(c, row);
       const seat = seatOf(row, user.id);
-      return { id, ...publicMatchView(row.state, seat, row.deadline) };
+      return { id, mode: row.mode, ...publicMatchView(row.state, seat, row.deadline) };
     });
   });
 
@@ -90,7 +90,7 @@ export const matchRoutes: RouteModule = (app, deps) => {
       row = await playBotTurns(c, row);
 
       const seat = seatOf(row, user.id);
-      const response = { id, ...publicMatchView(row.state, seat, row.deadline) };
+      const response = { id, mode: row.mode, ...publicMatchView(row.state, seat, row.deadline) };
       await c.query(
         "INSERT INTO match_commands (match_id, user_id, command_id, response) VALUES ($1, $2, $3, $4)",
         [id, user.id, body.commandId, JSON.stringify(response)],

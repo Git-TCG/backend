@@ -12,7 +12,7 @@ export const statusRoutes: RouteModule = (app, deps) => {
   // 수집·분석 진행 상황.
   app.get("/api/status", async (req) => {
     const user = await requireUser(req, deps);
-    const [jobs, cards, poolReady] = await Promise.all([
+    const [jobs, cards, poolReady, tutorial] = await Promise.all([
       pool.query(
         `SELECT j.id, j.kind, j.status, j.attempts, j.last_error, j.updated_at,
                 (j.payload->>'repoId')::bigint AS repo_id
@@ -36,6 +36,7 @@ export const statusRoutes: RouteModule = (app, deps) => {
            AND v.season_id = (SELECT id FROM seasons WHERE status = 'active')
          WHERE p.pool = 'general' AND p.active`,
       ),
+      pool.query("SELECT 1 FROM reward_grants WHERE user_id = $1 AND grant_key = 'tutorial'", [user.id]),
     ]);
     const counts = cards.rows[0]!;
     return {
@@ -46,6 +47,7 @@ export const statusRoutes: RouteModule = (app, deps) => {
       starterMissing: user.allocated_at ? Math.max(0, STARTER_SIZE - counts.owned) : null,
       poolReady: poolReady.rows[0]!.count,
       canPlayOwned: counts.ready >= STARTER_SIZE,
+      tutorialDone: (tutorial.rowCount ?? 0) > 0,
       jobs: jobs.rows,
     };
   });

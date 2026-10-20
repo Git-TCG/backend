@@ -5,6 +5,7 @@ import { createMatch } from "../engine/index.js";
 import { createUser } from "../test/app.js";
 import { createTestDatabase, describeDb, type TestDatabase } from "../test/db.js";
 import { enqueueOrMatch, loadMatchForUser, playBotTurns, progressTimeouts, seatOf } from "./matches.js";
+import { settleMatchRewards } from "./rewards.js";
 
 describeDb("대전·대기열", () => {
   let db: TestDatabase;
@@ -57,5 +58,34 @@ describeDb("대전·대기열", () => {
       expect(row.state.seq).toBeGreaterThan(state.seq);
       expect(new Date(row.deadline).getTime()).toBeGreaterThan(Date.now() - 1000);
     });
+  });
+
+  it("연습 대전은 실제로 플레이해서 4턴 이상 진행했을 때만 튜토리얼 보상을 한 번 준다", async () => {
+    const played = 9010;
+    const idle = 9011;
+    for (const id of [played, idle]) await createUser(db.pool, id, { consent: true, allocated: true });
+    const state = createMatch({ cards: SAMPLE_CARDS, decks: SAMPLE_DECKS, seed: 7 });
+    const insert = async (userId: number, acted: number, turn: number) => {
+      const id = randomUUID();
+      const ended = { ...state, turn, phase: "ended", result: { kind: "win", winner: 1, reason: "concede" } };
+      await db.pool.query(
+        `INSERT INTO matches (id, mode, season_id, player0, player1, deck0, deck1, state, seq, deadline, acted0)
+         VALUES ($1, 'bot', 1, $2, 0, 'trial', 'trial', $3, 0, now(), $4)`,
+        [id, userId, JSON.stringify(ended), acted],
+      );
+      return { id, player0: userId, player1: 0, acted0: acted, acted1: 0, settled_at: null, state: ended };
+    };
+    const grants = async (userId: number) =>
+      (await db.pool.query("SELECT grant_key FROM reward_grants WHERE user_id = $1", [userId])).rows.map((r) => r.grant_key);
+
+    await settleMatchRewards(db.pool, await insert(idle, 0, 10));
+    await settleMatchRewards(db.pool, await insert(idle, 3, 2));
+    expect(await grants(idle)).toEqual([]);
+
+    await settleMatchRewards(db.pool, await insert(played, 2, 6));
+    await settleMatchRewards(db.pool, await insert(played, 2, 6));
+    expect(await grants(played)).toEqual(["tutorial"]);
+    const user = await db.pool.query("SELECT normal_matches FROM users WHERE id = $1", [played]);
+    expect(user.rows[0].normal_matches).toBe(0);
   });
 });
