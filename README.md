@@ -5,8 +5,19 @@
 ## 시작
 
 1. `backend/.env`가 없을 때만 `.env.example`을 `.env`로 복사합니다. 기존 `.env`는 덮어쓰지 않습니다.
-2. GitHub OAuth 앱에 `http://localhost:8123/api/auth/github`, `http://192.168.0.33:8123/api/auth/github`을 콜백으로 등록하고 `.env`에 클라이언트 ID·시크릿을 설정합니다. `CORS_ORIGINS`에는 접속할 웹 호스트 또는 전체 Origin을 쉼표로 나열합니다. 운영자 기능은 숫자 GitHub 사용자 ID를 `ADMIN_GITHUB_IDS`에 지정해야 열립니다.
+2. GitHub OAuth 앱에 `http://localhost:8123/api/auth/github`, `http://192.168.0.33:8123/api/auth/github`, `https://git-tcg.shxin.kr/api/auth/github`을 콜백으로 등록하고 `.env`에 클라이언트 ID·시크릿을 설정합니다. `CORS_ORIGINS`에는 접속할 웹 호스트 또는 전체 Origin을 쉼표로 나열합니다. 운영자 기능은 숫자 GitHub 사용자 ID를 `ADMIN_GITHUB_IDS`에 지정해야 열립니다.
 3. `docker compose up --build -d`를 이 디렉터리에서 실행하고 `http://localhost:8123` 또는 LAN 주소 `http://192.168.0.33:8123`으로 접속합니다. DB 마이그레이션이 완료된 뒤 API와 워커가 시작됩니다. 건강 확인은 `/api/health`입니다.
+
+## README 배지
+
+로그인 없이 열리는 SVG입니다. GitHub README에는 공개 주소를 넣습니다.
+
+```md
+![Repo TCG](https://git-tcg.shxin.kr/api/badge/status.svg)
+![전적](https://git-tcg.shxin.kr/api/badge/users/GITHUB로그인.svg)
+```
+
+로컬에서는 `http://192.168.0.33:8123/api/badge/status.svg` 와 `/api/badge/users/<login>.svg` 입니다. JSON은 확장자 없는 같은 경로입니다.
 
 `GITHUB_CLASSIC_TOKEN`은 공개 Repo 조회에 사용합니다. 사용자 OAuth 토큰은 로그인 시 사용자 확인에만 쓰고 DB에 저장하지 않습니다. `OPENAI_API_KEY`를 비우면 범용 분류를 사용합니다. 실제 Repo 등급은 필수 GitHub 지표가 모두 수집될 때만 발행합니다.
 

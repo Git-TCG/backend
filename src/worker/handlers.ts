@@ -1,6 +1,6 @@
 import type pg from "pg";
 import type { Env } from "../config/env.js";
-import { allocateInitial, fillWaitingStarters, syncNewRepositories } from "../domain/allocation.js";
+import { activateReadyOverflow, allocateInitial, fillWaitingStarters, syncNewRepositories } from "../domain/allocation.js";
 import { generateCardVersion, recordCardFailure } from "../domain/cards.js";
 import { enqueueCardImage, generateCardImage } from "../domain/images.js";
 import { recordRepoMissing, upsertRepository } from "../domain/repositories.js";
@@ -42,8 +42,10 @@ export function createHandlers(deps: WorkerDeps): Record<string, JobHandler> {
           const active = await pool.query("SELECT 1 FROM seasons WHERE id = $1 AND status = 'active'", [
             payload<"card">(job).seasonId,
           ]);
-          // 공용 카드가 새로 준비되면 시작 카드가 모자란 사용자를 채운다.
-          if (active.rowCount) await fillWaitingStarters(pool);
+          if (active.rowCount) {
+            await activateReadyOverflow(pool);
+            await fillWaitingStarters(pool);
+          }
         }
       },
       onFinalFailure: async (job, error) => {

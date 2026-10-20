@@ -6,7 +6,9 @@ import { allowedOrigins, type Env } from "./config/env.js";
 import { HttpError } from "./http/errors.js";
 import { adminRoutes } from "./routes/admin.js";
 import { authRoutes } from "./routes/auth.js";
+import { badgeRoutes } from "./routes/badge.js";
 import { collectionRoutes } from "./routes/collection.js";
+import { settingsRoutes } from "./routes/settings.js";
 import { matchRoutes } from "./routes/matches.js";
 import { rewardRoutes } from "./routes/rewards.js";
 import { imageRoutes } from "./routes/images.js";
@@ -28,6 +30,8 @@ const ROUTES: RouteModule[] = [
   rewardRoutes,
   adminRoutes,
   imageRoutes,
+  badgeRoutes,
+  settingsRoutes,
 ];
 
 export async function buildServer(deps: AppDeps, routes: RouteModule[] = ROUTES) {

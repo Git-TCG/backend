@@ -38,6 +38,17 @@ describeDb("GitHub 로그인과 세션", () => {
     expect((await startLogin("localhost:9999")).statusCode).toBe(403);
   });
 
+  it("공개 https 도메인에서는 그 Redirect URI로 보낸다", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/auth/github/start",
+      headers: { host: "git-tcg.shxin.kr", "x-forwarded-proto": "https" },
+    });
+    expect(res.statusCode).toBe(302);
+    const url = new URL(res.headers.location as string);
+    expect(url.searchParams.get("redirect_uri")).toBe("https://git-tcg.shxin.kr/api/auth/github");
+  });
+
   it("콜백은 코드를 교환해 사용자와 세션을 만들고, 같은 state는 다시 쓸 수 없다", async () => {
     const start = await startLogin("192.168.0.33:8123");
     const state = new URL(start.headers.location as string).searchParams.get("state")!;

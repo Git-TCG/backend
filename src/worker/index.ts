@@ -1,6 +1,7 @@
 import { loadEnv } from "../config/env.js";
 import { runMigrations } from "../db/migrate.js";
 import { createPool } from "../db/pool.js";
+import { enqueueUnanalyzedOverflow } from "../domain/allocation.js";
 import { enqueueMissingImages } from "../domain/images.js";
 import { GitHubClient } from "../github/client.js";
 import { runNextJob } from "../jobs/worker.js";
@@ -12,6 +13,8 @@ const env = loadEnv();
 const pool = createPool(env.DATABASE_URL);
 await runMigrations(pool);
 const handlers = createHandlers({ pool, env, github: new GitHubClient(env.GITHUB_CLASSIC_TOKEN) });
+const overflow = await enqueueUnanalyzedOverflow(pool);
+if (overflow) console.log(`overflow cards queued: ${overflow}`);
 if (env.OPENAI_API_KEY) {
   // 체험 덱과 이미 준비된 카드 중 그림이 없는 것을 채운다.
   const queued = await enqueueMissingImages(pool);

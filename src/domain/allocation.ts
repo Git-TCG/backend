@@ -30,6 +30,38 @@ async function addOwnerOverflowToPool(q: Queryable, repoId: number) {
      ON CONFLICT DO NOTHING`,
     [repoId],
   );
+  // 공용 후보는 지급 때 분석해도 되지만, 풀에 안 보이면 없는 카드처럼 보이므로 바로 만든다.
+  await enqueueCard(q, repoId);
+}
+
+/** 카드가 준비된 초과 Repo를 일반 풀에 게시한다. 운영자가 올린 미게시 카드는 건드리지 않는다. */
+export async function activateReadyOverflow(q: Queryable): Promise<number> {
+  const r = await q.query(
+    `UPDATE pool_memberships p SET active = true
+     WHERE p.pool = 'general' AND p.source = 'owner_overflow' AND NOT p.active
+       AND EXISTS (
+         SELECT 1 FROM card_versions v
+         WHERE v.repo_id = p.repo_id AND v.status = 'ready'
+           AND v.season_id = (SELECT id FROM seasons WHERE status = 'active')
+       )
+     RETURNING p.repo_id`,
+  );
+  return r.rowCount ?? 0;
+}
+
+/** 아직 카드가 없는 초과 Repo의 분석 작업을 올린다. 워커 시작 때 기존 후보를 살린다. */
+export async function enqueueUnanalyzedOverflow(q: Queryable): Promise<number> {
+  const r = await q.query<{ repo_id: number }>(
+    `SELECT p.repo_id FROM pool_memberships p
+     WHERE p.pool = 'general' AND p.source = 'owner_overflow'
+       AND NOT EXISTS (
+         SELECT 1 FROM card_versions v
+         WHERE v.repo_id = p.repo_id AND v.status = 'ready'
+           AND v.season_id = (SELECT id FROM seasons WHERE status = 'active')
+       )`,
+  );
+  for (const { repo_id } of r.rows) await enqueueCard(q, repo_id, undefined, { force: true });
+  return r.rows.length;
 }
 
 /**

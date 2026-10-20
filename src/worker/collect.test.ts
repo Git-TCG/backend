@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
-import { allocateInitial, fillWaitingStarters } from "../domain/allocation.js";
+import { activateReadyOverflow, allocateInitial, fillWaitingStarters } from "../domain/allocation.js";
 import { upsertRepository } from "../domain/repositories.js";
 import { GitHubClient } from "../github/client.js";
 import { enqueueCollect, enqueueSync } from "../jobs/kinds.js";
@@ -54,7 +54,7 @@ describeDb("최초 수집·배정 작업", () => {
     expect(counts.personal ?? 0).toBe(Math.min(3, Math.max(0, n - 7)));
     expect(counts.public ?? 0).toBe(Math.max(0, n - 10));
     const cardJobs = await db.pool.query("SELECT count(*) AS n FROM jobs WHERE kind = 'card'");
-    expect(cardJobs.rows[0].n).toBe(Math.min(7, n));
+    expect(cardJobs.rows[0].n).toBe(Math.min(7, n) + Math.max(0, n - 10));
     const pool = await db.pool.query(
       "SELECT count(*) AS n FROM pool_memberships p JOIN allocations a ON a.repo_id = p.repo_id WHERE a.user_id = $1 AND NOT p.active",
       [userId],
@@ -129,6 +129,29 @@ describeDb("최초 수집·배정 작업", () => {
     expect(await bucketCounts(userId)).toEqual({ initial: 7, personal: 3, public: 2 });
     const owned = await db.pool.query("SELECT count(*) AS n FROM user_cards WHERE user_id = $1", [userId]);
     expect(owned.rows[0].n).toBe(7);
+    expect((await db.pool.query("SELECT count(*) AS n FROM jobs WHERE kind = 'card'")).rows[0].n).toBe(2);
+  });
+
+  it("11번째부터는 카드로 만들고 준비되면 공용 풀에 올린다", async () => {
+    const userId = nextUser++;
+    await createUser(db.pool, userId, { consent: true });
+    stubFetch(githubUserRoutes(userId, repos(userId, 12)));
+    await enqueueCollect(db.pool, userId);
+    await runNextJob(db.pool, handlers());
+    const overflow = await db.pool.query<{ repo_id: number }>(
+      "SELECT repo_id FROM allocations WHERE user_id = $1 AND bucket = 'public' ORDER BY position",
+      [userId],
+    );
+    expect(overflow.rows).toHaveLength(2);
+    const jobs = await db.pool.query<{ id: string }>("SELECT payload->>'repoId' AS id FROM jobs WHERE kind = 'card'");
+    const jobIds = jobs.rows.map((j) => Number(j.id));
+    for (const { repo_id } of overflow.rows) expect(jobIds).toContain(repo_id);
+    for (const { repo_id } of overflow.rows) {
+      await db.pool.query("INSERT INTO card_versions (repo_id, season_id, status, card) VALUES ($1, 1, 'ready', '{}')", [repo_id]);
+    }
+    expect(await activateReadyOverflow(db.pool)).toBe(2);
+    const posted = await db.pool.query("SELECT count(*) AS n FROM pool_memberships WHERE active AND source = 'owner_overflow'");
+    expect(posted.rows[0].n).toBe(2);
   });
 
   it("GitHub 한도 초과는 재시도 횟수를 쓰지 않고 미룬다", async () => {

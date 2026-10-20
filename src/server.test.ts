@@ -44,7 +44,14 @@ describe("환경변수", () => {
   });
 
   it("호스트만 적은 CORS_ORIGINS는 웹 포트 8123의 http Origin이 된다", () => {
-    const e = loadEnv({ DATABASE_URL: "x", CORS_ORIGINS: "192.168.0.33,localhost, https://tcg.shxin.kr ,bad/path" });
-    expect(allowedOrigins(e)).toEqual(["http://192.168.0.33:8123", "http://localhost:8123", "https://tcg.shxin.kr"]);
+    const e = loadEnv({
+      DATABASE_URL: "x",
+      CORS_ORIGINS: "192.168.0.33,localhost, https://git-tcg.shxin.kr ,bad/path",
+    });
+    expect(allowedOrigins(e)).toEqual([
+      "http://192.168.0.33:8123",
+      "http://localhost:8123",
+      "https://git-tcg.shxin.kr",
+    ]);
   });
 });

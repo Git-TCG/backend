@@ -10,7 +10,7 @@ export function testEnv(overrides: Record<string, string> = {}): Env {
   return loadEnv({
     NODE_ENV: "test",
     DATABASE_URL: "postgres://unused",
-    CORS_ORIGINS: "localhost,192.168.0.33",
+    CORS_ORIGINS: "localhost,192.168.0.33,https://git-tcg.shxin.kr",
     GITHUB_CLIENT_ID: "client-id",
     GITHUB_CLIENT_SECRET: "client-secret",
     GITHUB_CLASSIC_TOKEN: "classic",

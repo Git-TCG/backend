@@ -18,6 +18,8 @@
     "@fastify/cors": "^11.3.1",
     "fastify": "^5.12.7",
     "pg": "^8.23.1",
+    "sharp": "^0.35.5",
+    "subset-font": "^2.9.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
