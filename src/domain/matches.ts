@@ -1,3 +1,4 @@
+import { grownCard } from "./growth.js";
 import { randomInt, randomUUID } from "node:crypto";
 import type pg from "pg";
 import { SAMPLE_CARDS, SAMPLE_DECKS } from "../cards/samples.js";
@@ -58,16 +59,19 @@ export async function loadDeck(q: Queryable, userId: number, kind: DeckKind, sea
   if (ids.length !== 7 || new Set(ids).size !== 7) throw conflict("현재 덱에 서로 다른 카드 7장을 저장하세요");
 
   const season = await activeSeasonId(q);
-  const r = await q.query<{ repo_id: number; card: CardDef }>(
-    `SELECT uc.repo_id, v.card FROM user_cards uc
+  const r = await q.query<{ repo_id: number; card: CardDef; upgrade_rank: number }>(
+    `SELECT uc.repo_id, uc.upgrade_rank, v.card FROM user_cards uc
      JOIN card_versions v ON v.repo_id = uc.repo_id AND v.season_id = $2 AND v.status = 'ready'
      WHERE uc.user_id = $1 AND uc.repo_id = ANY ($3::bigint[])`,
     [userId, season, ids.map(Number)],
   );
   if (r.rowCount !== 7) throw conflict("현재 시즌에 사용할 수 없는 카드가 있습니다");
   return {
-    ids,
-    cards: Object.fromEntries(r.rows.map((row) => [String(row.repo_id), row.card])),
+    ids: ids.map((id) => `${userId}:${id}`),
+    cards: Object.fromEntries(r.rows.map((row) => {
+      const id = `${userId}:${row.repo_id}`;
+      return [id, { ...grownCard(row.card, row.upgrade_rank), id }];
+    })),
   };
 }
 

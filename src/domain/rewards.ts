@@ -1,3 +1,4 @@
+import { awardGrowth } from "./growth.js";
 import type { Queryable } from "../db/pool.js";
 import { enqueueCard } from "../jobs/kinds.js";
 import { drawPoolCards } from "./pool.js";
@@ -97,7 +98,10 @@ export async function settleMatchRewards(
   if (row.player0 === 0 || row.player1 === 0) {
     const human = row.player0 === 0 ? row.player1 : row.player0;
     const acted = row.player0 === 0 ? row.acted1 : row.acted0;
-    if (acted >= 1 && row.state.turn >= 4) await grantMilestone(q, human, "tutorial");
+    if (acted >= 1 && row.state.turn >= 4) {
+      await grantMilestone(q, human, "tutorial");
+      await awardGrowth(q, human, row.id, true);
+    }
     return;
   }
   if (row.acted0 < 1 || row.acted1 < 1 || row.state.turn < 4) return;
@@ -121,6 +125,7 @@ export async function settleMatchRewards(
       "UPDATE users SET normal_matches = normal_matches + 1 WHERE id = $1 RETURNING normal_matches",
       [userId],
     );
+    await awardGrowth(q, userId, row.id, false);
     const total = updated.rows[0]!.normal_matches;
     for (const threshold of MATCH_THRESHOLDS) {
       if (total === threshold) await grantMilestone(q, userId, `matches:${threshold}`);
